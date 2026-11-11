@@ -1,0 +1,25 @@
+# env files: never commit secrets
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+
+# Go
+api/bin/
+*.test
+*.out
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Local database backups (contain member data)
+backups/
+*.dump
+*.sql.gz

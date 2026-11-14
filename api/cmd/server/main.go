@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,9 +15,14 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// localhost only for now: avoids the Windows Firewall prompt.
-	// Address will move to config (env) in the scaffold step, since Docker needs 0.0.0.0.
-	if err := r.Run("localhost:8080"); err != nil {
+	// Default to localhost for native dev (no Windows Firewall prompt).
+	// In Docker, HTTP_ADDR=:8080 listens on all interfaces inside the container.
+	addr := os.Getenv("HTTP_ADDR")
+	if addr == "" {
+		addr = "localhost:8080"
+	}
+
+	if err := r.Run(addr); err != nil {
 		log.Fatal(err)
 	}
 }

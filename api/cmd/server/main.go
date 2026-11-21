@@ -3,26 +3,26 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/Ashira-C/ku-acoustic-pwa/api/internal/config"
 )
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+
 	r := gin.Default()
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Default to localhost for native dev (no Windows Firewall prompt).
-	// In Docker, HTTP_ADDR=:8080 listens on all interfaces inside the container.
-	addr := os.Getenv("HTTP_ADDR")
-	if addr == "" {
-		addr = "localhost:8080"
-	}
-
-	if err := r.Run(addr); err != nil {
+	log.Printf("starting API (env=%s) on %s", cfg.AppEnv, cfg.HTTPAddr)
+	if err := r.Run(cfg.HTTPAddr); err != nil {
 		log.Fatal(err)
 	}
 }

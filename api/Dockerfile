@@ -17,7 +17,7 @@ FROM gcr.io/distroless/static-debian13:nonroot
 COPY --from=build /out/server /server
 
 ENV GIN_MODE=release \
-    HTTP_ADDR=:8080
+    PORT=8080
 EXPOSE 8080
 USER nonroot:nonroot
 ENTRYPOINT ["/server"]

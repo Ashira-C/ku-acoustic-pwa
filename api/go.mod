@@ -3,9 +3,11 @@ module github.com/Ashira-C/ku-acoustic-pwa/api
 go 1.27.1
 
 require (
+	github.com/caarlos0/env/v11 v11.4.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.13.0
+	github.com/joho/godotenv v1.5.1
 )
 
 require (

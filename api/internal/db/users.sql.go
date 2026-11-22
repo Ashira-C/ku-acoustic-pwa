@@ -27,15 +27,28 @@ func (q *Queries) AddUserPart(ctx context.Context, arg AddUserPartParams) error 
 	return err
 }
 
+const countActivatedUsers = `-- name: CountActivatedUsers :one
+SELECT count(*) FROM users
+WHERE password_hash IS NOT NULL
+`
+
+func (q *Queries) CountActivatedUsers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countActivatedUsers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (student_id, name, email, role, status)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, student_id, password_hash, name, email, role, status, created_at, updated_at
+INSERT INTO users (student_id, name, nickname, email, role, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, student_id, password_hash, name, email, role, status, created_at, updated_at, nickname
 `
 
 type CreateUserParams struct {
 	StudentID string     `json:"student_id"`
 	Name      string     `json:"name"`
+	Nickname  string     `json:"nickname"`
 	Email     *string    `json:"email"`
 	Role      UserRole   `json:"role"`
 	Status    UserStatus `json:"status"`
@@ -45,6 +58,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	row := q.db.QueryRow(ctx, createUser,
 		arg.StudentID,
 		arg.Name,
+		arg.Nickname,
 		arg.Email,
 		arg.Role,
 		arg.Status,
@@ -60,12 +74,23 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nickname,
 	)
 	return i, err
 }
 
+const deleteUserParts = `-- name: DeleteUserParts :exec
+DELETE FROM user_parts
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserParts(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserParts, userID)
+	return err
+}
+
 const getUserByStudentID = `-- name: GetUserByStudentID :one
-SELECT id, student_id, password_hash, name, email, role, status, created_at, updated_at FROM users
+SELECT id, student_id, password_hash, name, email, role, status, created_at, updated_at, nickname FROM users
 WHERE student_id = $1
 `
 
@@ -82,6 +107,7 @@ func (q *Queries) GetUserByStudentID(ctx context.Context, studentID string) (Use
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nickname,
 	)
 	return i, err
 }
@@ -109,4 +135,35 @@ func (q *Queries) ListParts(ctx context.Context) ([]Part, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertImportedUser = `-- name: UpsertImportedUser :one
+INSERT INTO users (student_id, name, nickname, role)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (student_id) DO UPDATE
+SET name       = EXCLUDED.name,
+    nickname   = EXCLUDED.nickname,
+    role       = EXCLUDED.role,
+    updated_at = now()
+RETURNING id
+`
+
+type UpsertImportedUserParams struct {
+	StudentID string   `json:"student_id"`
+	Name      string   `json:"name"`
+	Nickname  string   `json:"nickname"`
+	Role      UserRole `json:"role"`
+}
+
+// Used only by the one-time importer: re-running updates the same rows.
+func (q *Queries) UpsertImportedUser(ctx context.Context, arg UpsertImportedUserParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertImportedUser,
+		arg.StudentID,
+		arg.Name,
+		arg.Nickname,
+		arg.Role,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }

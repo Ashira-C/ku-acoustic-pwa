@@ -114,6 +114,7 @@ type User struct {
 	Status       UserStatus `json:"status"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
+	Nickname     string     `json:"nickname"`
 }
 
 type UserPart struct {
